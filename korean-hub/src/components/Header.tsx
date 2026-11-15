@@ -26,7 +26,7 @@ function LanguageButtons({
 }) {
   return (
     <div className={cn("flex items-center gap-1", className)} aria-label={l("header.languageSelector")}>
-      {(["en", "ka"] as const).map((language) => (
+      {(["ka", "en"] as const).map((language) => (
         <button
           key={language}
           type="button"

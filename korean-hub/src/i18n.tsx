@@ -37,19 +37,11 @@ function getTranslation(dictionary: Dictionary, key: string): string {
 }
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocale] = useState<Locale>("en");
-  const [hasLoadedPreference, setHasLoadedPreference] = useState(false);
-
-  useEffect(() => {
-    const savedLocale = window.localStorage.getItem("korean-hub-locale");
-    if (savedLocale === "en" || savedLocale === "ka") setLocale(savedLocale);
-    setHasLoadedPreference(true);
-  }, []);
+  const [locale, setLocale] = useState<Locale>("ka");
 
   useEffect(() => {
     document.documentElement.lang = locale;
-    if (hasLoadedPreference) window.localStorage.setItem("korean-hub-locale", locale);
-  }, [hasLoadedPreference, locale]);
+  }, [locale]);
 
   const value = useMemo<I18nValue>(() => {
     const dictionary = dictionaries[locale];
