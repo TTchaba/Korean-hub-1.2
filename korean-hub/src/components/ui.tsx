@@ -12,6 +12,7 @@ import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/i18n";
 
 // ── Buttons ──────────────────────────────────────────────────────────
 
@@ -60,15 +61,19 @@ export function SectionTitle({
   title,
   description,
   className,
+  descriptionClassName,
 }: {
   title: string;
   description?: string;
   className?: string;
+  descriptionClassName?: string;
 }) {
   return (
     <div className={cn("max-w-2xl", className)}>
-      <h2 className="text-3xl font-medium tracking-tight sm:text-4xl">{title}</h2>
-      {description && <p className="mt-4 text-lg text-ink/70">{description}</p>}
+      <h2 className="text-3xl font-medium tracking-tight text-inherit sm:text-4xl">{title}</h2>
+      {description && (
+        <p className={cn("mt-4 text-lg", descriptionClassName ?? "text-ink/70")}>{description}</p>
+      )}
     </div>
   );
 }
@@ -117,12 +122,15 @@ export function CTASection({
     <section className="bg-ink py-24 text-porcelain sm:py-28">
       <div className="container-hub text-center">
         <Reveal>
-          <h2 className="mx-auto max-w-2xl text-4xl font-medium tracking-tight sm:text-5xl">
+          <h2 className="mx-auto max-w-2xl text-4xl font-medium tracking-tight text-porcelain sm:text-5xl">
             {headline}
           </h2>
           {description && <p className="mx-auto mt-4 max-w-lg text-porcelain/70">{description}</p>}
           <div className="mt-10">
-            <ButtonLink href={ctaHref} className="bg-porcelain text-ink hover:bg-ochre-400">
+            <ButtonLink
+              href={ctaHref}
+              className="!bg-porcelain !text-black hover:!bg-ochre-400"
+            >
               {ctaLabel}
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </ButtonLink>
@@ -138,7 +146,7 @@ export function CTASection({
 export function ErrorState({
   title,
   description,
-  actionLabel = "Back to homepage",
+  actionLabel,
   actionHref = "/",
 }: {
   title: string;
@@ -146,6 +154,7 @@ export function ErrorState({
   actionLabel?: string;
   actionHref?: string;
 }) {
+  const { l } = useI18n();
   return (
     <section className="py-20 sm:py-28">
       <div className="container-hub mx-auto max-w-lg text-center">
@@ -155,9 +164,9 @@ export function ErrorState({
         <h1 className="mt-6 font-display text-3xl">{title}</h1>
         <p className="mt-3 text-ink/70">{description}</p>
         <div className="mt-8 flex justify-center gap-3">
-          <ButtonLink href={actionHref}>{actionLabel}</ButtonLink>
+          <ButtonLink href={actionHref}>{actionLabel ?? l("shared.backHome")}</ButtonLink>
           <ButtonLink href="/contact" variant="secondary">
-            Contact us
+            {l("shared.contactUs")}
           </ButtonLink>
         </div>
       </div>

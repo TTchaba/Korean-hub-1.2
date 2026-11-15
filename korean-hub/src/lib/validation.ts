@@ -12,34 +12,34 @@ function ids(list: Array<{ id: string }>): [string, ...string[]] {
  * server in /api/registrations (never trust the browser alone).
  */
 export const registrationSchema = z.object({
-  fullName: z.string().trim().min(2, "Enter your full name.").max(80, "Name is too long."),
-  email: z.string().trim().email("Enter a valid email address.").max(120),
+  fullName: z.string().trim().min(2, "validation.fullName").max(80, "validation.nameTooLong"),
+  email: z.string().trim().email("validation.email").max(120, "validation.emailTooLong"),
   phone: z
     .string()
     .trim()
-    .min(6, "Enter a valid phone number.")
-    .max(20, "Phone number is too long.")
-    .regex(/^[0-9+\s()-]+$/, "Use only numbers, spaces, and + ( ) -."),
+    .min(6, "validation.phone")
+    .max(20, "validation.phoneTooLong")
+    .regex(/^[0-9+\s()-]+$/, "validation.phoneCharacters"),
   koreanLevel: z.enum(ids(siteContent.koreanLevels), {
-    errorMap: () => ({ message: "Select your current Korean level." }),
+    errorMap: () => ({ message: "validation.koreanLevel" }),
   }),
   lessonType: z.enum(ids(siteContent.lessons), {
-    errorMap: () => ({ message: "Select a lesson type." }),
+    errorMap: () => ({ message: "validation.lessonType" }),
   }),
   preferredDays: z
     .array(z.enum(ids(siteContent.booking.days)))
-    .min(1, "Choose at least one day that could work for you."),
+    .min(1, "validation.preferredDays"),
   preferredTime: z.enum(ids(siteContent.booking.timeSlots), {
-    errorMap: () => ({ message: "Choose a preferred time of day." }),
+    errorMap: () => ({ message: "validation.preferredTime" }),
   }),
-  goals: z.string().trim().max(600, "Keep this under 600 characters.").optional(),
-  additionalInfo: z.string().trim().max(600, "Keep this under 600 characters.").optional(),
+  goals: z.string().trim().max(600, "validation.maxCharacters").optional(),
+  additionalInfo: z.string().trim().max(600, "validation.maxCharacters").optional(),
 });
 
 export type RegistrationFormValues = z.infer<typeof registrationSchema>;
 
 export const contactSchema = z.object({
-  name: z.string().trim().min(2, "Enter your name.").max(80),
-  email: z.string().trim().email("Enter a valid email address."),
-  message: z.string().trim().min(10, "Message is too short.").max(2000, "Message is too long."),
+  name: z.string().trim().min(2, "validation.fullName").max(80, "validation.nameTooLong"),
+  email: z.string().trim().email("validation.email").max(254, "validation.emailTooLong"),
+  message: z.string().trim().min(10, "validation.messageTooShort").max(2000, "validation.messageTooLong"),
 });

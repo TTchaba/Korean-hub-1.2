@@ -8,7 +8,7 @@
 //
 // Nothing is paid or booked here. Submitting only sends a request to
 // /api/registrations, which saves it as "pending" until the teacher
-// contacts the student. Day/time options come from siteContent.ts → booking.
+// contacts the student. Day/time options come from the selected locale.
 
 import { useState, type FormEvent, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
@@ -17,17 +17,12 @@ import { Check, CheckCircle2 } from "lucide-react";
 import { Button, ButtonLink } from "@/components/ui";
 import { cn, formatPrice } from "@/lib/utils";
 import { registrationSchema, type RegistrationFormValues } from "@/lib/validation";
-import { findLessonById, siteContent } from "@/siteContent";
+import { findLessonById } from "@/siteContent";
+import { useI18n } from "@/i18n";
 
 type StepId = "lesson" | "details" | "review" | "done";
 type Details = Omit<RegistrationFormValues, "lessonType">;
 type FieldErrors = Partial<Record<keyof RegistrationFormValues, string>>;
-
-const STEPS = [
-  { id: "lesson", label: "Choose lesson" },
-  { id: "details", label: "Your details" },
-  { id: "review", label: "Review" },
-];
 
 const EMPTY_DETAILS: Details = {
   fullName: "",
@@ -40,15 +35,14 @@ const EMPTY_DETAILS: Details = {
   additionalInfo: "",
 };
 
-const { days, timeSlots, scheduleNote } = siteContent.booking;
-
 // ── Main component: keeps track of the current step and sends the request ──
 
 export function BookingForm() {
+  const { content, l } = useI18n();
   // /book?lesson=group pre-selects a lesson (used by the "Register" buttons on lesson cards).
   const requestedLesson = useSearchParams().get("lesson");
   const [lessonId, setLessonId] = useState<string | null>(
-    requestedLesson && findLessonById(requestedLesson) ? requestedLesson : null
+    requestedLesson && findLessonById(requestedLesson, content) ? requestedLesson : null
   );
   const [step, setStep] = useState<StepId>("lesson");
   const [details, setDetails] = useState<Details>(EMPTY_DETAILS);
@@ -56,7 +50,7 @@ export function BookingForm() {
   const [sendError, setSendError] = useState<string | null>(null);
   const reduceMotion = useReducedMotion();
 
-  const lesson = lessonId ? findLessonById(lessonId) : undefined;
+  const lesson = lessonId ? findLessonById(lessonId, content) : undefined;
 
   async function sendRequest() {
     if (!lesson) return;
@@ -72,11 +66,17 @@ export function BookingForm() {
 
       if (!response.ok) {
         const data = (await response.json().catch(() => ({}))) as { error?: string };
-        throw new Error(data.error ?? "Could not send your registration.");
+        throw new Error(
+          data.error?.startsWith("validation.") ? data.error : "booking.sendError"
+        );
       }
       setStep("done");
     } catch (error) {
-      setSendError(error instanceof Error ? error.message : "Something went wrong. Please try again.");
+      setSendError(
+        error instanceof Error && error.message.startsWith("validation.")
+          ? error.message
+          : "booking.sendError"
+      );
     } finally {
       setIsSending(false);
     }
@@ -131,11 +131,17 @@ export function BookingForm() {
 // ── Progress indicator ────────────────────────────────────────────────
 
 function Stepper({ currentStep }: { currentStep: StepId }) {
-  const currentIndex = STEPS.findIndex((step) => step.id === currentStep);
+  const { l } = useI18n();
+  const steps = [
+    { id: "lesson", label: l("booking.steps.lesson") },
+    { id: "details", label: l("booking.steps.details") },
+    { id: "review", label: l("booking.steps.review") },
+  ];
+  const currentIndex = steps.findIndex((step) => step.id === currentStep);
 
   return (
-    <ol className="mb-12 flex items-center gap-2 sm:gap-4" aria-label="Registration progress">
-      {STEPS.map((step, index) => {
+    <ol className="mb-12 flex items-center gap-2 sm:gap-4" aria-label={l("booking.progress")}>
+      {steps.map((step, index) => {
         const isComplete = index < currentIndex;
         const isCurrent = index === currentIndex;
         return (
@@ -156,7 +162,7 @@ function Stepper({ currentStep }: { currentStep: StepId }) {
                 {step.label}
               </span>
             </div>
-            {index < STEPS.length - 1 && (
+            {index < steps.length - 1 && (
               <div className={cn("h-px flex-1", isComplete ? "bg-celadon-600" : "bg-ink/10")} />
             )}
           </li>
@@ -177,13 +183,14 @@ function LessonStep({
   onSelect: (id: string) => void;
   onNext: () => void;
 }) {
+  const { content, l, locale } = useI18n();
   return (
     <div>
-      <h2 className="font-display text-2xl">Choose your lesson</h2>
-      <p className="mt-1 text-ink/60">Both are live, online, one hour, twice a week.</p>
+      <h2 className="font-display text-2xl">{l("booking.chooseLesson")}</h2>
+      <p className="mt-1 text-ink/60">{l("booking.chooseLessonDescription")}</p>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
-        {siteContent.lessons.map((lesson) => {
+        {content.lessons.map((lesson) => {
           const isSelected = selectedId === lesson.id;
           return (
             <button
@@ -201,10 +208,12 @@ function LessonStep({
                   <Check className="h-3.5 w-3.5" aria-hidden="true" />
                 </span>
               )}
-              <p className="text-sm font-medium text-celadon-700">{lesson.isGroup ? "Group" : "Individual"}</p>
+              <p className="text-sm font-medium text-celadon-700">
+                {l(lesson.isGroup ? "lessonCard.group" : "lessonCard.individual")}
+              </p>
               <p className="mt-1 font-display text-xl">{lesson.title}</p>
               <p className="mt-2 text-sm text-ink/70">{lesson.shortDescription}</p>
-              <p className="mt-4 font-display text-2xl">{formatPrice(lesson.price, lesson.currency)}</p>
+              <p className="mt-4 font-display text-2xl">{formatPrice(lesson.price, lesson.currency, locale)}</p>
             </button>
           );
         })}
@@ -212,7 +221,7 @@ function LessonStep({
 
       <div className="mt-8">
         <Button disabled={!selectedId} onClick={onNext}>
-          Continue
+          {l("booking.continue")}
         </Button>
       </div>
     </div>
@@ -232,6 +241,7 @@ function DetailsStep({
   onBack: () => void;
   onNext: (values: Details) => void;
 }) {
+  const { content, l } = useI18n();
   const [values, setValues] = useState(initialValues);
   const [errors, setErrors] = useState<FieldErrors>({});
 
@@ -268,11 +278,11 @@ function DetailsStep({
 
   return (
     <form onSubmit={handleSubmit} noValidate className="max-w-xl">
-      <h2 className="font-display text-2xl">Your details</h2>
-      <p className="mt-1 text-ink/60">This is all Korean Hub needs to get in touch with you.</p>
+      <h2 className="font-display text-2xl">{l("booking.detailsTitle")}</h2>
+      <p className="mt-1 text-ink/60">{l("booking.detailsDescription")}</p>
 
       <div className="mt-6 space-y-5">
-        <Field label="Full name" htmlFor="fullName" error={errors.fullName}>
+        <Field label={l("booking.fullName")} htmlFor="fullName" error={errors.fullName}>
           <input
             id="fullName"
             type="text"
@@ -284,7 +294,7 @@ function DetailsStep({
           />
         </Field>
 
-        <Field label="Email" htmlFor="email" error={errors.email}>
+        <Field label={l("booking.email")} htmlFor="email" error={errors.email}>
           <input
             id="email"
             type="email"
@@ -296,7 +306,7 @@ function DetailsStep({
           />
         </Field>
 
-        <Field label="Phone number" htmlFor="phone" error={errors.phone}>
+        <Field label={l("booking.phone")} htmlFor="phone" error={errors.phone}>
           <input
             id="phone"
             type="tel"
@@ -308,7 +318,7 @@ function DetailsStep({
           />
         </Field>
 
-        <Field label="Your current Korean level" htmlFor="koreanLevel" error={errors.koreanLevel}>
+        <Field label={l("booking.koreanLevel")} htmlFor="koreanLevel" error={errors.koreanLevel}>
           <select
             id="koreanLevel"
             value={values.koreanLevel}
@@ -317,9 +327,9 @@ function DetailsStep({
             className={inputClass(errors.koreanLevel)}
           >
             <option value="" disabled>
-              Select a level
+              {l("booking.selectLevel")}
             </option>
-            {siteContent.koreanLevels.map((level) => (
+            {content.koreanLevels.map((level) => (
               <option key={level.id} value={level.id}>
                 {level.label}
               </option>
@@ -329,9 +339,9 @@ function DetailsStep({
 
         {/* Preferred days: real checkboxes, styled as pills */}
         <fieldset>
-          <legend className="text-sm font-medium">Preferred days</legend>
+          <legend className="text-sm font-medium">{l("booking.preferredDays")}</legend>
           <div className="mt-2 flex flex-wrap gap-2">
-            {days.map((day) => (
+            {content.booking.days.map((day) => (
               <PillOption
                 key={day.id}
                 type="checkbox"
@@ -347,9 +357,9 @@ function DetailsStep({
 
         {/* Preferred time of day: radio buttons, styled as pills */}
         <fieldset>
-          <legend className="text-sm font-medium">Preferred time of day</legend>
+          <legend className="text-sm font-medium">{l("booking.preferredTime")}</legend>
           <div className="mt-2 flex flex-wrap gap-2">
-            {timeSlots.map((slot) => (
+            {content.booking.timeSlots.map((slot) => (
               <PillOption
                 key={slot.id}
                 type="radio"
@@ -361,10 +371,10 @@ function DetailsStep({
             ))}
           </div>
           {errors.preferredTime && <p className="mt-1 text-sm text-dancheong-500">{errors.preferredTime}</p>}
-          <p className="mt-2 text-sm text-ink/50">{scheduleNote}</p>
+          <p className="mt-2 text-sm text-ink/50">{content.booking.scheduleNote}</p>
         </fieldset>
 
-        <Field label="Your learning goals" htmlFor="goals" error={errors.goals} optional>
+        <Field label={l("booking.goals")} htmlFor="goals" error={errors.goals} optional>
           <textarea
             id="goals"
             rows={3}
@@ -372,11 +382,11 @@ function DetailsStep({
             onChange={(e) => setField("goals", e.target.value)}
             aria-invalid={Boolean(errors.goals)}
             className={cn(inputClass(errors.goals), "resize-none")}
-            placeholder="e.g. I'm learning for an upcoming trip to Seoul."
+            placeholder={l("booking.goalsPlaceholder")}
           />
         </Field>
 
-        <Field label="Anything else we should know" htmlFor="additionalInfo" error={errors.additionalInfo} optional>
+        <Field label={l("booking.additionalInfo")} htmlFor="additionalInfo" error={errors.additionalInfo} optional>
           <textarea
             id="additionalInfo"
             rows={3}
@@ -390,9 +400,9 @@ function DetailsStep({
 
       <div className="mt-8 flex gap-3">
         <Button variant="secondary" onClick={onBack}>
-          Back
+          {l("booking.back")}
         </Button>
-        <Button type="submit">Continue</Button>
+        <Button type="submit">{l("booking.continue")}</Button>
       </div>
     </form>
   );
@@ -415,31 +425,35 @@ function ReviewStep({
   onBack: () => void;
   onSubmit: () => void;
 }) {
-  const lesson = findLessonById(lessonId);
+  const { content, l, locale } = useI18n();
+  const lesson = findLessonById(lessonId, content);
   if (!lesson) return null;
 
   const labelOf = (list: Array<{ id: string; label: string }>, id: string) =>
     list.find((item) => item.id === id)?.label ?? id;
 
   const rows: Array<[string, string | undefined]> = [
-    ["Lesson", lesson.title],
-    ["Duration", lesson.duration],
-    ["Frequency", lesson.frequency],
-    ["Listed price", formatPrice(lesson.price, lesson.currency)],
-    ["Name", details.fullName],
-    ["Email", details.email],
-    ["Phone", details.phone],
-    ["Korean level", labelOf(siteContent.koreanLevels, details.koreanLevel)],
-    ["Preferred days", details.preferredDays.map((id) => labelOf(days, id)).join(", ")],
-    ["Preferred time", labelOf(timeSlots, details.preferredTime)],
-    ["Goals", details.goals],
-    ["Notes", details.additionalInfo],
+    [l("booking.reviewRows.lesson"), lesson.title],
+    [l("booking.reviewRows.duration"), lesson.duration],
+    [l("booking.reviewRows.frequency"), lesson.frequency],
+    [l("booking.reviewRows.price"), formatPrice(lesson.price, lesson.currency, locale)],
+    [l("booking.reviewRows.name"), details.fullName],
+    [l("booking.reviewRows.email"), details.email],
+    [l("booking.reviewRows.phone"), details.phone],
+    [l("booking.reviewRows.koreanLevel"), labelOf(content.koreanLevels, details.koreanLevel)],
+    [
+      l("booking.reviewRows.preferredDays"),
+      details.preferredDays.map((id) => labelOf(content.booking.days, id)).join(", "),
+    ],
+    [l("booking.reviewRows.preferredTime"), labelOf(content.booking.timeSlots, details.preferredTime)],
+    [l("booking.reviewRows.goals"), details.goals],
+    [l("booking.reviewRows.notes"), details.additionalInfo],
   ];
 
   return (
     <div className="max-w-xl">
-      <h2 className="font-display text-2xl">Review your request</h2>
-      <p className="mt-1 text-ink/60">Check everything looks right, then send it to Korean Hub.</p>
+      <h2 className="font-display text-2xl">{l("booking.reviewTitle")}</h2>
+      <p className="mt-1 text-ink/60">{l("booking.reviewDescription")}</p>
 
       <dl className="mt-6 divide-y divide-ink/10 rounded-md border border-ink/10">
         {rows
@@ -452,23 +466,20 @@ function ReviewStep({
           ))}
       </dl>
 
-      <p className="mt-4 text-sm text-ink/50">
-        This is a registration request. Your request stays pending, and no lesson time is booked,
-        until {siteContent.brand.name} contacts you by email or phone to confirm.
-      </p>
+      <p className="mt-4 text-sm text-ink/50">{l("booking.pendingNotice")}</p>
 
       {error && (
         <p role="alert" className="mt-4 text-sm text-dancheong-500">
-          {error}
+          {l(error)}
         </p>
       )}
 
       <div className="mt-8 flex gap-3">
         <Button variant="secondary" onClick={onBack} disabled={isSending}>
-          Back
+          {l("booking.back")}
         </Button>
         <Button onClick={onSubmit} disabled={isSending}>
-          {isSending ? "Sending…" : "Submit registration"}
+          {isSending ? l("booking.sending") : l("booking.submit")}
         </Button>
       </div>
     </div>
@@ -479,6 +490,7 @@ function ReviewStep({
 
 function ThankYou({ lessonTitle }: { lessonTitle?: string }) {
   const reduceMotion = useReducedMotion();
+  const { content, l } = useI18n();
 
   return (
     <div className="mx-auto max-w-lg text-center" role="status">
@@ -491,18 +503,18 @@ function ThankYou({ lessonTitle }: { lessonTitle?: string }) {
         <CheckCircle2 className="h-8 w-8 text-celadon-700" aria-hidden="true" />
       </motion.span>
       <h1 className="mt-6 font-display text-3xl">
-        Thank you for registering with {siteContent.brand.name}
+        {l("booking.thankYou")} — {content.brand.name}
       </h1>
       <p className="mt-3 text-ink/70">
-        We received your information{lessonTitle ? ` for ${lessonTitle}` : ""} successfully. We will
-        contact you by phone or email {siteContent.contact.responseWindow} to confirm your lesson
-        details and schedule.
+        {l("booking.received")}
+        {lessonTitle ? ` (${lessonTitle})` : ""} {l("booking.responseTime")}{" "}
+        {content.contact.responseWindow}.
       </p>
       <p className="mt-2 text-sm text-ink/50">
-        Your request is pending — no lesson time has been booked yet.
+        {l("booking.pending")}
       </p>
       <div className="mt-8">
-        <ButtonLink href="/">Back to homepage</ButtonLink>
+        <ButtonLink href="/">{l("booking.home")}</ButtonLink>
       </div>
     </div>
   );
@@ -530,13 +542,14 @@ function Field({
   optional?: boolean;
   children: ReactNode;
 }) {
+  const { l } = useI18n();
   return (
     <div>
       <label htmlFor={htmlFor} className="block text-sm font-medium">
-        {label} {optional && <span className="font-normal text-ink/40">(optional)</span>}
+        {label} {optional && <span className="font-normal text-ink/40">({l("booking.optional")})</span>}
       </label>
       <div className="mt-1.5">{children}</div>
-      {error && <p className="mt-1 text-sm text-dancheong-500">{error}</p>}
+      {error && <p className="mt-1 text-sm text-dancheong-500">{l(error)}</p>}
     </div>
   );
 }

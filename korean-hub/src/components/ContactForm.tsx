@@ -3,10 +3,12 @@
 import { useState, type FormEvent } from "react";
 import { Loader2, CheckCircle2 } from "lucide-react";
 import { contactSchema } from "@/lib/validation";
+import { useI18n } from "@/i18n";
 
 type Status = "idle" | "submitting" | "success" | "error";
 
 export function ContactForm() {
+  const { l } = useI18n();
   const [values, setValues] = useState({ name: "", email: "", message: "" });
   const [errors, setErrors] = useState<Partial<Record<keyof typeof values, string>>>({});
   const [status, setStatus] = useState<Status>("idle");
@@ -49,9 +51,9 @@ export function ContactForm() {
       <div className="flex items-start gap-3 rounded-md border border-celadon-300 bg-celadon-50 p-6">
         <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0 text-celadon-700" aria-hidden="true" />
         <div>
-          <p className="font-medium text-celadon-900">Message sent</p>
+          <p className="font-medium text-celadon-900">{l("contactForm.sent")}</p>
           <p className="mt-1 text-sm text-celadon-700">
-            Thanks for reaching out — Korean Hub will get back to you soon.
+            {l("contactForm.thanks")}
           </p>
         </div>
       </div>
@@ -62,7 +64,7 @@ export function ContactForm() {
     <form onSubmit={handleSubmit} noValidate className="space-y-5">
       <div>
         <label htmlFor="contact-name" className="block text-sm font-medium">
-          Name
+          {l("contactForm.name")}
         </label>
         <input
           id="contact-name"
@@ -75,14 +77,14 @@ export function ContactForm() {
         />
         {errors.name && (
           <p id="contact-name-error" className="mt-1 text-sm text-dancheong-500">
-            {errors.name}
+            {l(errors.name)}
           </p>
         )}
       </div>
 
       <div>
         <label htmlFor="contact-email" className="block text-sm font-medium">
-          Email
+          {l("contactForm.email")}
         </label>
         <input
           id="contact-email"
@@ -95,14 +97,14 @@ export function ContactForm() {
         />
         {errors.email && (
           <p id="contact-email-error" className="mt-1 text-sm text-dancheong-500">
-            {errors.email}
+            {l(errors.email)}
           </p>
         )}
       </div>
 
       <div>
         <label htmlFor="contact-message" className="block text-sm font-medium">
-          Message
+          {l("contactForm.message")}
         </label>
         <textarea
           id="contact-message"
@@ -115,13 +117,13 @@ export function ContactForm() {
         />
         {errors.message && (
           <p id="contact-message-error" className="mt-1 text-sm text-dancheong-500">
-            {errors.message}
+            {l(errors.message)}
           </p>
         )}
       </div>
 
       {status === "error" && (
-        <p className="text-sm text-dancheong-500">Something went wrong. Please try again.</p>
+        <p className="text-sm text-dancheong-500">{l("contactForm.error")}</p>
       )}
 
       <button
@@ -130,7 +132,7 @@ export function ContactForm() {
         className="inline-flex items-center gap-2 rounded bg-ink px-6 py-3 text-sm font-medium text-porcelain transition-colors hover:bg-celadon-700 disabled:opacity-50"
       >
         {status === "submitting" && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
-        Send message
+        {l("contactForm.submit")}
       </button>
     </form>
   );

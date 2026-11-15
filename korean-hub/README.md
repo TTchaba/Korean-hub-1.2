@@ -24,16 +24,21 @@ Google Fonts.
 
 | I want to change… | Edit this |
 |---|---|
-| Any text, lesson **prices**, teacher info, contact details, social links, FAQ, testimonials, menu links, day/time options, Google Form fallback, SEO | `src/siteContent.ts` |
+| Website text and translations (English/Georgian), lesson **prices**, teacher info, contact details, FAQ, day/time options, SEO | `src/locales/en.ts` and `src/locales/ka.ts` |
+| Language-switching behavior and saved language preference | `src/i18n.tsx` |
 | Colours, fonts sizes, spacing scale | `tailwind.config.ts` |
-| The teacher photo | replace `public/images/teacher-placeholder.svg`, then update `teachers[0].photo` in `siteContent.ts` |
+| The teacher photo | replace `public/images/teacher-placeholder.svg`, then update `content.teachers[0].photo` in both locale files |
 | Who can read/write Firestore | `firestore.rules` |
 
 ## Folder map
 
 ```
 src/
-  siteContent.ts          ← ALL editable website content (start here)
+  locales/
+    en.ts                 ← English website content and UI translations
+    ka.ts                 ← Georgian website content and UI translations
+  i18n.tsx                ← Language provider and translation lookup
+  siteContent.ts          ← Shared content helpers
   app/                    ← one folder per page; each page.tsx is that page
     page.tsx                  home
     lessons/ teacher/ for-students/ contact/ book/

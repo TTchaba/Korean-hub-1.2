@@ -8,27 +8,18 @@ import { useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { ButtonLink, Reveal, SectionTitle } from "@/components/ui";
-import { siteContent } from "@/siteContent";
-
-// A handful of everyday Korean words that drift behind the headline —
-// the "characteristic thing in the subject's world" the hero opens with,
-// rather than a generic stock photo or gradient blob.
-const DRIFTING_WORDS = [
-  { hangul: "안녕", meaning: "hello", top: "12%", left: "6%", delay: 0 },
-  { hangul: "감사", meaning: "thanks", top: "68%", left: "10%", delay: 0.6 },
-  { hangul: "배우다", meaning: "to learn", top: "22%", left: "82%", delay: 0.3 },
-  { hangul: "잘했어", meaning: "well done", top: "78%", left: "78%", delay: 0.9 },
-];
+import { useI18n } from "@/i18n";
 
 export function Hero() {
   const shouldReduceMotion = useReducedMotion();
+  const { content } = useI18n();
   const { heroHeadline, heroSubheadline, heroPrimaryCta, heroSecondaryCta } =
-    siteContent.homepage;
+    content.homepage;
 
   return (
     <section className="relative overflow-hidden border-b border-ink/10 bg-porcelain py-24 sm:py-32">
       {!shouldReduceMotion &&
-        DRIFTING_WORDS.map((word) => (
+        content.homepage.vocabulary.driftingWords.map((word) => (
           <motion.span
             key={word.hangul}
             className="pointer-events-none absolute select-none font-display text-2xl text-celadon-300 sm:text-3xl"
@@ -57,7 +48,7 @@ export function Hero() {
           transition={{ duration: 0.6 }}
           className="font-display text-sm tracking-wide text-celadon-700"
         >
-          {siteContent.brand.logoText} · Korean Hub
+          {content.brand.logoText} · Korean Hub
         </motion.p>
 
         <motion.h1
@@ -97,21 +88,6 @@ export function Hero() {
   );
 }
 
-interface VocabCard {
-  hangul: string;
-  romanization: string;
-  meaning: string;
-}
-
-const VOCAB: VocabCard[] = [
-  { hangul: "사랑", romanization: "sarang", meaning: "love" },
-  { hangul: "친구", romanization: "chingu", meaning: "friend" },
-  { hangul: "행복", romanization: "haengbok", meaning: "happiness" },
-  { hangul: "여행", romanization: "yeohaeng", meaning: "journey" },
-  { hangul: "용기", romanization: "yonggi", meaning: "courage" },
-  { hangul: "희망", romanization: "huimang", meaning: "hope" },
-];
-
 /**
  * A single strong concept: cards that flip from Hangul to meaning on
  * hover/tap, framed as a small daily-vocabulary moment rather than a
@@ -119,6 +95,7 @@ const VOCAB: VocabCard[] = [
  */
 export function VocabCards() {
   const [flipped, setFlipped] = useState<Set<string>>(new Set());
+  const { content, l } = useI18n();
 
   function toggle(hangul: string) {
     setFlipped((prev) => {
@@ -134,12 +111,12 @@ export function VocabCards() {
       <div className="container-hub">
         <SectionTitle
           className="text-porcelain [&_p]:text-porcelain/70"
-          title="One word a day adds up"
-          description="Every card below hides its meaning until you look. That's how real vocabulary sticks — a little curiosity, a little repetition."
+          title={l("home.vocabularyHeading")}
+          description={l("home.vocabularyDescription")}
         />
 
         <div className="mt-14 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-          {VOCAB.map((card, index) => {
+          {content.homepage.vocabulary.cards.map((card, index) => {
             const isFlipped = flipped.has(card.hangul);
             return (
               <Reveal key={card.hangul} delay={index * 0.05}>
@@ -148,7 +125,7 @@ export function VocabCards() {
                   onClick={() => toggle(card.hangul)}
                   className="group relative h-40 w-full [perspective:800px]"
                   aria-pressed={isFlipped}
-                  aria-label={`${card.hangul}, reveal meaning`}
+                  aria-label={`${card.hangul}, ${l("home.revealMeaning")}`}
                 >
                   <motion.div
                     className="relative h-full w-full rounded-md [transform-style:preserve-3d]"

@@ -1,7 +1,7 @@
 "use client";
 
 // The rest of the homepage, one section after another (in the order they
-// appear on the page). The text for all of them comes from siteContent.ts.
+// appear on the page). Content and labels come from the selected locale.
 //
 //   WhyKoreanHub ... four reason cards
 //   LessonsPreview . individual + group lesson cards
@@ -14,12 +14,13 @@ import { useState } from "react";
 import Image from "next/image";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { CalendarCheck, MessagesSquare, Plus, Sparkles, UserRound, type LucideIcon } from "lucide-react";
-import { ButtonLink, Reveal, SectionTitle } from "@/components/ui";
+import { ButtonLink, CTASection, Reveal, SectionTitle } from "@/components/ui";
 import { LessonCard } from "@/components/LessonCard";
-import { getPrimaryTeacher, siteContent } from "@/siteContent";
+import { getPrimaryTeacher, type siteContent as englishContent } from "@/siteContent";
+import { useI18n } from "@/i18n";
 
-type Testimonial = (typeof siteContent.testimonials)[number];
-type FaqItem = (typeof siteContent.faq)[number];
+type Testimonial = (typeof englishContent.testimonials)[number];
+type FaqItem = (typeof englishContent.faq)[number];
 
 const ICONS: Record<string, LucideIcon> = {
   teacher: UserRound,
@@ -29,7 +30,8 @@ const ICONS: Record<string, LucideIcon> = {
 };
 
 export function WhyKoreanHub() {
-  const { title, description, reasons } = siteContent.homepage.whyKoreanHub;
+  const { content } = useI18n();
+  const { title, description, reasons } = content.homepage.whyKoreanHub;
 
   return (
     <section className="border-b border-ink/10 py-24 sm:py-32">
@@ -60,16 +62,17 @@ export function WhyKoreanHub() {
 }
 
 export function LessonsPreview() {
+  const { content, l } = useI18n();
   return (
     <section className="border-b border-ink/10 bg-porcelain-dim py-24 sm:py-32">
       <div className="container-hub">
         <SectionTitle
-          title="Two ways to learn"
-          description="Both are live, online, one hour, twice a week — the difference is who's in the room."
+          title={l("home.lessonWaysTitle")}
+          description={l("home.lessonWaysDescription")}
         />
 
         <div className="mt-14 grid gap-6 sm:grid-cols-2">
-          {siteContent.lessons.map((lesson, index) => (
+          {content.lessons.map((lesson, index) => (
             <Reveal key={lesson.id} delay={index * 0.1}>
               <LessonCard lesson={lesson} />
             </Reveal>
@@ -81,7 +84,8 @@ export function LessonsPreview() {
 }
 
 export function TeacherPreview() {
-  const teacher = getPrimaryTeacher();
+  const { content, l } = useI18n();
+  const teacher = getPrimaryTeacher(content);
 
   return (
     <section className="border-b border-ink/10 py-24 sm:py-32">
@@ -90,7 +94,7 @@ export function TeacherPreview() {
           <div className="relative aspect-[4/5] overflow-hidden rounded-md bg-celadon-100">
             <Image
               src={teacher.photo}
-              alt={`Portrait of ${teacher.name}`}
+              alt={`${l("pages.teacher.portrait")}: ${teacher.name}`}
               fill
               className="object-cover"
               sizes="(min-width: 1024px) 40vw, 90vw"
@@ -99,7 +103,7 @@ export function TeacherPreview() {
         </Reveal>
 
         <Reveal delay={0.1}>
-          <p className="text-sm font-medium text-celadon-700">Your teacher</p>
+          <p className="text-sm font-medium text-celadon-700">{l("home.teacher")}</p>
           <h2 className="mt-2 font-display text-4xl tracking-tight sm:text-5xl">
             {teacher.name}
           </h2>
@@ -107,7 +111,7 @@ export function TeacherPreview() {
           <p className="mt-6 max-w-prose text-lg text-ink/80">{teacher.shortBio}</p>
           <div className="mt-8">
             <ButtonLink href="/teacher" variant="secondary">
-              Meet {teacher.name}
+              {l("home.meetTeacher")}
             </ButtonLink>
           </div>
         </Reveal>
@@ -117,15 +121,16 @@ export function TeacherPreview() {
 }
 
 export function HowItWorks() {
-  const steps = siteContent.homepage.howItWorks;
+  const { content } = useI18n();
+  const { title, description, steps } = content.homepage.howItWorks;
 
   return (
     <section id="how-it-works" className="border-b border-ink/10 bg-celadon-900 py-24 text-porcelain sm:py-32">
       <div className="container-hub">
         <SectionTitle
-          className="[&_p]:text-porcelain/70"
-          title="How it works"
-          description="Registering takes a couple of minutes. Your actual lesson time is agreed with you personally, not assigned by an algorithm."
+          title={title}
+          description={description}
+          descriptionClassName="text-porcelain/70"
         />
 
         <ol className="relative mt-16 grid gap-10 sm:grid-cols-5 sm:gap-4">
@@ -142,7 +147,7 @@ export function HowItWorks() {
                 <span className="relative z-10 flex h-10 w-10 items-center justify-center rounded-full bg-ochre-400 font-display text-sm text-ink">
                   {index + 1}
                 </span>
-                <h3 className="mt-4 font-medium">{step.title}</h3>
+                <h3 className="mt-4 font-medium text-porcelain/70">{step.title}</h3>
                 <p className="mt-1 text-sm text-porcelain/70">{step.description}</p>
               </li>
             </Reveal>
@@ -168,13 +173,14 @@ function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
 }
 
 export function Testimonials() {
+  const { content, l } = useI18n();
   return (
     <section className="border-b border-ink/10 bg-porcelain-dim py-24 sm:py-32">
       <div className="container-hub">
-        <SectionTitle title="What students say" />
+        <SectionTitle title={l("home.testimonialsHeading")} />
 
         <div className="mt-14 grid gap-6 sm:grid-cols-3">
-          {siteContent.testimonials.map((testimonial, index) => (
+          {content.testimonials.map((testimonial, index) => (
             <Reveal key={testimonial.id} delay={index * 0.08} className="h-full">
               <TestimonialCard testimonial={testimonial} />
             </Reveal>
@@ -236,14 +242,27 @@ function FAQAccordion({ items }: { items: FaqItem[] }) {
 }
 
 export function FAQSection() {
+  const { content, l } = useI18n();
   return (
     <section className="py-24 sm:py-32">
       <div className="container-hub max-w-3xl">
-        <SectionTitle title="Frequently asked questions" />
+        <SectionTitle title={l("home.faqHeading")} />
         <Reveal className="mt-12">
-          <FAQAccordion items={siteContent.faq} />
+          <FAQAccordion items={content.faq} />
         </Reveal>
       </div>
     </section>
+  );
+}
+
+export function HomeFinalCTA() {
+  const { content } = useI18n();
+  return (
+    <CTASection
+      headline={content.homepage.finalCtaHeadline}
+      description={content.homepage.finalCtaDescription}
+      ctaLabel={content.homepage.finalCtaLabel}
+      ctaHref="/book"
+    />
   );
 }

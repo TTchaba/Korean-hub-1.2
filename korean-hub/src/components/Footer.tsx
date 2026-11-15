@@ -1,8 +1,11 @@
+"use client";
+
 import Link from "next/link";
-import { siteContent } from "@/siteContent";
+import { useI18n } from "@/i18n";
 
 export function Footer() {
-  const { brand, contact, socialMedia, navigation, site } = siteContent;
+  const { content, l } = useI18n();
+  const { brand, contact, socialMedia, navigation, site } = content;
 
   return (
     <footer className="border-t border-ink/10 bg-porcelain-dim">
@@ -12,8 +15,8 @@ export function Footer() {
           <p className="mt-3 max-w-[26ch] text-sm text-ink/70">{brand.description}</p>
         </div>
 
-        <nav aria-label="Site">
-          <p className="text-sm font-medium text-ink/50">Site</p>
+        <nav aria-label={l("footer.site")}>
+          <p className="text-sm font-medium text-ink/50">{l("footer.site")}</p>
           <ul className="mt-3 space-y-2 text-sm">
             {navigation.links
               .filter((link) => link.href !== "/" && link.href !== "/contact")
@@ -33,7 +36,7 @@ export function Footer() {
         </nav>
 
         <div>
-          <p className="text-sm font-medium text-ink/50">Contact</p>
+          <p className="text-sm font-medium text-ink/50">{l("footer.contact")}</p>
           <ul className="mt-3 space-y-2 text-sm">
             <li>{contact.email}</li>
             <li>{contact.phone}</li>
@@ -41,7 +44,7 @@ export function Footer() {
         </div>
 
         <div>
-          <p className="text-sm font-medium text-ink/50">Follow</p>
+          <p className="text-sm font-medium text-ink/50">{l("footer.follow")}</p>
           <ul className="mt-3 space-y-2 text-sm">
             <li>
               <a href={socialMedia.instagram} className="hover:text-celadon-700">
@@ -61,9 +64,9 @@ export function Footer() {
 
       <div className="container-hub flex flex-col gap-2 py-6 text-xs text-ink/50 sm:flex-row sm:justify-between">
         <p>
-          © {new Date().getFullYear()} {site.legalName}. All rights reserved.
+          © {new Date().getFullYear()} {site.legalName}. {l("footer.rightsReserved")}
         </p>
-        <p>Registration is a request — your schedule is confirmed personally.</p>
+        <p>{l("footer.registrationNote")}</p>
       </div>
     </footer>
   );
