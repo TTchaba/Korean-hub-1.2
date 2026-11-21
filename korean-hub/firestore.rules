@@ -1,8 +1,68 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // All reads/writes happen server-side through the Firebase Admin SDK,
-    // which bypasses these rules. Browsers get no direct access at all.
+    function validRegistration(data) {
+      return data.keys().hasAll([
+          'fullName', 'email', 'phone', 'koreanLevel', 'lessonType',
+          'lessonTitle', 'preferredDays', 'preferredTime', 'status', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'fullName', 'email', 'phone', 'koreanLevel', 'lessonType',
+          'lessonTitle', 'preferredDays', 'preferredTime', 'goals',
+          'additionalInfo', 'status', 'createdAt'
+        ])
+        && data.fullName is string
+        && data.fullName.size() >= 2
+        && data.fullName.size() <= 80
+        && data.email is string
+        && data.email.size() <= 120
+        && data.email.matches('^.+@.+\\..+$')
+        && data.phone is string
+        && data.phone.size() >= 6
+        && data.phone.size() <= 20
+        && data.phone.matches('^[0-9+ ()-]+$')
+        && data.koreanLevel in ['beginner', 'elementary', 'intermediate', 'advanced', 'unsure']
+        && data.lessonType in ['individual', 'group']
+        && (
+          (data.lessonType == 'individual' && data.lessonTitle == 'Individual Korean')
+          || (data.lessonType == 'group' && data.lessonTitle == 'Group Korean')
+        )
+        && data.preferredDays is list
+        && data.preferredDays.size() >= 1
+        && data.preferredDays.size() <= 7
+        && data.preferredDays.hasOnly(['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'])
+        && data.preferredTime in ['morning', 'afternoon', 'evening']
+        && (!('goals' in data) || (data.goals is string && data.goals.size() <= 600))
+        && (!('additionalInfo' in data) || (data.additionalInfo is string && data.additionalInfo.size() <= 600))
+        && data.status == 'pending'
+        && data.createdAt == request.time;
+    }
+
+    function validContactSubmission(data) {
+      return data.keys().hasAll(['name', 'email', 'message', 'createdAt'])
+        && data.keys().hasOnly(['name', 'email', 'message', 'createdAt'])
+        && data.name is string
+        && data.name.size() >= 2
+        && data.name.size() <= 80
+        && data.email is string
+        && data.email.size() <= 254
+        && data.email.matches('^.+@.+\\..+$')
+        && data.message is string
+        && data.message.size() >= 10
+        && data.message.size() <= 2000
+        && data.createdAt == request.time;
+    }
+
+    match /registrations/{registrationId} {
+      allow create: if validRegistration(request.resource.data);
+      allow read, update, delete: if false;
+    }
+
+    match /contactSubmissions/{submissionId} {
+      allow create: if validContactSubmission(request.resource.data);
+      allow read, update, delete: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

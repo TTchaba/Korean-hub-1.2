@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { Loader2, CheckCircle2 } from "lucide-react";
 import { contactSchema } from "@/lib/validation";
+import { getDb } from "@/lib/firebase";
 import { useI18n } from "@/i18n";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 
 type Status = "idle" | "submitting" | "success" | "error";
 
@@ -12,9 +14,11 @@ export function ContactForm() {
   const [values, setValues] = useState({ name: "", email: "", message: "" });
   const [errors, setErrors] = useState<Partial<Record<keyof typeof values, string>>>({});
   const [status, setStatus] = useState<Status>("idle");
+  const submissionInProgress = useRef(false);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
+    if (submissionInProgress.current) return;
 
     const parsed = contactSchema.safeParse(values);
     if (!parsed.success) {
@@ -28,21 +32,21 @@ export function ContactForm() {
     }
 
     setErrors({});
+    submissionInProgress.current = true;
     setStatus("submitting");
 
     try {
-      const response = await fetch("/api/contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(parsed.data),
+      await addDoc(collection(getDb(), "contactSubmissions"), {
+        ...parsed.data,
+        createdAt: serverTimestamp(),
       });
-
-      if (!response.ok) throw new Error("Request failed");
 
       setStatus("success");
       setValues({ name: "", email: "", message: "" });
     } catch {
       setStatus("error");
+    } finally {
+      submissionInProgress.current = false;
     }
   }
 

@@ -8,18 +8,17 @@ function ids(list: Array<{ id: string }>): [string, ...string[]] {
 }
 
 /**
- * Used twice: in the browser for instant feedback, and again on the
- * server in /api/registrations (never trust the browser alone).
+ * Used in the browser for instant feedback. Firestore rules independently
+ * validate all documents written by unauthenticated visitors.
  */
 export const registrationSchema = z.object({
   fullName: z.string().trim().min(2, "validation.fullName").max(80, "validation.nameTooLong"),
   email: z.string().trim().email("validation.email").max(120, "validation.emailTooLong"),
   phone: z
     .string()
-    .trim()
     .min(6, "validation.phone")
     .max(20, "validation.phoneTooLong")
-    .regex(/^[0-9+\s()-]+$/, "validation.phoneCharacters"),
+    .regex(/^[0-9+ ()-]+$/, "validation.phoneCharacters"),
   koreanLevel: z.enum(ids(siteContent.koreanLevels), {
     errorMap: () => ({ message: "validation.koreanLevel" }),
   }),

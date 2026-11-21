@@ -7,18 +7,20 @@
 //   4. Thank-you screen
 //
 // Nothing is paid or booked here. Submitting only sends a request to
-// /api/registrations, which saves it as "pending" until the teacher
-// contacts the student. Day/time options come from the selected locale.
+// Firestore, where it is saved as "pending" until the teacher contacts
+// the student. Day/time options come from the selected locale.
 
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Check, CheckCircle2 } from "lucide-react";
 import { Button, ButtonLink } from "@/components/ui";
+import { getDb } from "@/lib/firebase";
 import { cn, formatPrice } from "@/lib/utils";
 import { registrationSchema, type RegistrationFormValues } from "@/lib/validation";
 import { findLessonById } from "@/siteContent";
 import { useI18n } from "@/i18n";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 
 type StepId = "lesson" | "details" | "review" | "done";
 type Details = Omit<RegistrationFormValues, "lessonType">;
@@ -48,28 +50,33 @@ export function BookingForm() {
   const [details, setDetails] = useState<Details>(EMPTY_DETAILS);
   const [isSending, setIsSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
+  const submissionInProgress = useRef(false);
   const reduceMotion = useReducedMotion();
 
   const lesson = lessonId ? findLessonById(lessonId, content) : undefined;
 
   async function sendRequest() {
-    if (!lesson) return;
+    if (!lesson || submissionInProgress.current) return;
+    submissionInProgress.current = true;
     setIsSending(true);
     setSendError(null);
 
     try {
-      const response = await fetch("/api/registrations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...details, lessonType: lesson.id }),
-      });
-
-      if (!response.ok) {
-        const data = (await response.json().catch(() => ({}))) as { error?: string };
-        throw new Error(
-          data.error?.startsWith("validation.") ? data.error : "booking.sendError"
-        );
+      const parsed = registrationSchema.safeParse({ ...details, lessonType: lesson.id });
+      if (!parsed.success) {
+        throw new Error("booking.sendError");
       }
+      const canonicalLesson = findLessonById(lesson.id);
+      if (!canonicalLesson) {
+        throw new Error("booking.sendError");
+      }
+
+      await addDoc(collection(getDb(), "registrations"), {
+        ...parsed.data,
+        lessonTitle: canonicalLesson.title,
+        status: "pending",
+        createdAt: serverTimestamp(),
+      });
       setStep("done");
     } catch (error) {
       setSendError(
@@ -78,6 +85,7 @@ export function BookingForm() {
           : "booking.sendError"
       );
     } finally {
+      submissionInProgress.current = false;
       setIsSending(false);
     }
   }

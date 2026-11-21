@@ -1,16 +1,14 @@
 {
+  "firestore": {
+    "rules": "korean-hub/firestore.rules"
+  },
   "hosting": {
     "public": "korean-hub/out",
+    "cleanUrls": true,
     "ignore": [
       "firebase.json",
       "**/.*",
       "**/node_modules/**"
-    ],
-    "rewrites": [
-      {
-        "source": "**",
-        "destination": "/index.html"
-      }
     ]
   }
 }

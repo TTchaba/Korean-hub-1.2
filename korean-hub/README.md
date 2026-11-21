@@ -9,16 +9,16 @@ The request is saved as `pending` and the teacher contacts the student by email 
 
 ## Run it
 
-```bash
+```powershell
 npm install
-cp .env.example .env.local     # fill in the 3 Firebase values
-npm run dev                    # http://localhost:3000
-npm run typecheck && npm run lint && npm run build
+Copy-Item .env.example .env.local
+npm run dev
 ```
 
-The site displays without Firebase keys; only *sending* a form needs them. It
-uses local system-font fallbacks, so development does not require access to
-Google Fonts.
+Copy `.env.example` to `.env.local` and fill in the Firebase Web app values
+before building or submitting forms. The site uses local system-font fallbacks,
+so development does not require access to Google Fonts. Run `npm run typecheck`,
+`npm run lint` and `npm run build` to validate and export the site.
 
 ## Where to edit things
 
@@ -42,8 +42,6 @@ src/
   app/                    ← one folder per page; each page.tsx is that page
     page.tsx                  home
     lessons/ teacher/ for-students/ contact/ book/
-    api/registrations/        saves a registration to Firestore
-    api/contact/              saves a contact message to Firestore
     layout.tsx                fonts, page frame (Header + Footer)
     globals.css               base styles
   components/
@@ -56,8 +54,8 @@ src/
     ContactForm.tsx
   lib/
     utils.ts                small helpers (class names, price formatting)
-    validation.ts           form rules, used by the browser AND the server
-    firebase.ts             Firestore connection (server only)
+    validation.ts           browser-side form rules
+    firebase.ts             Firebase Client SDK initialization
 ```
 
 ## Firestore
@@ -65,17 +63,22 @@ src/
 Collections: `registrations`, `contactSubmissions`.
 
 A registration has: `fullName, email, phone, koreanLevel, lessonType, lessonTitle,
-preferredDays, preferredTime, goals?, additionalInfo?, status, createdAt, updatedAt`.
-`status` starts as `pending`; change it by hand in the Firebase console to
-`contacted`, `confirmed` or `cancelled`.
+preferredDays, preferredTime, goals?, additionalInfo?, status, createdAt`.
+`status` starts as `pending`. Contact messages are saved in `contactSubmissions`
+with their name, email, message, and `createdAt` timestamp.
 
-Setup: create a Firebase project → enable Firestore → Project settings → Service accounts →
-*Generate new private key* → copy the three values into `.env.local`
-(`FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`; keep the quotes and `\n`).
-Publish `firestore.rules` — browsers get no direct database access, only the server writes.
+Create or use the Firebase project `koreanhubgeorgia`, enable Cloud Firestore,
+and register a Web app under Project settings → General → Your apps. Copy its
+`apiKey`, `projectId` and `appId` into `.env.local` as
+`NEXT_PUBLIC_FIREBASE_API_KEY`, `NEXT_PUBLIC_FIREBASE_PROJECT_ID` and
+`NEXT_PUBLIC_FIREBASE_APP_ID`. These are Web app identifiers, not private
+credentials. `NEXT_PUBLIC_SITE_URL` should be set to the deployed site URL for
+SEO metadata. Publish the root `firestore.rules` file; it permits validated
+document creation only and denies public reads, updates and deletes.
 
 ## Deploying
 
-This project contains no deployment configuration of its own (no `firebase.json` or GitHub
-workflow). Whichever host you use needs the same three Firebase environment variables, plus
-`NEXT_PUBLIC_SITE_URL`. The site uses server API routes, so it cannot be deployed as plain static files.
+The project is configured for Next.js static export; `npm run build` generates
+`out`. Firebase Hosting serves that directory on the Spark plan. Build with the
+Firebase Web app variables available, then deploy Hosting and Firestore rules
+from the repository root with `firebase deploy --only hosting,firestore:rules`.
